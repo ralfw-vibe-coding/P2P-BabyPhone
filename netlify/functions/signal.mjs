@@ -1,9 +1,8 @@
 import { getStore } from "@netlify/blobs";
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 
-const store = getStore({
-  name: "babyphone-signaling",
-  consistency: "strong",
-});
+const LOCAL_STORE_ROOT = path.join("/tmp", "babyphone-signaling-store");
 
 const ROOM_TTL_MS = 1000 * 60 * 30;
 const MESSAGE_TTL_MS = 1000 * 60 * 10;
@@ -21,6 +20,110 @@ const json = (status, body) =>
     headers: CORS_HEADERS,
   });
 
+const createLocalStore = (rootDir) => {
+  const toFilePath = (key) => path.join(rootDir, key);
+  const normalizeKey = (filePath) => path.relative(rootDir, filePath).replaceAll(path.sep, "/");
+
+  const ensureParentDir = async (filePath) => {
+    await mkdir(path.dirname(filePath), { recursive: true });
+  };
+
+  const walk = async (dirPath, visitor) => {
+    let entries = [];
+
+    try {
+      entries = await readdir(dirPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const nextPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        await walk(nextPath, visitor);
+        continue;
+      }
+
+      await visitor(nextPath);
+    }
+  };
+
+  return {
+    async get(key, options = {}) {
+      try {
+        const value = await readFile(toFilePath(key), "utf8");
+        return options.type === "json" ? JSON.parse(value) : value;
+      } catch {
+        return null;
+      }
+    },
+    async setJSON(key, value) {
+      const filePath = toFilePath(key);
+      await ensureParentDir(filePath);
+      await writeFile(filePath, JSON.stringify(value), "utf8");
+    },
+    async delete(key) {
+      try {
+        await rm(toFilePath(key), { force: true });
+      } catch {
+        // Ignore missing files in the local fallback store.
+      }
+    },
+    async list({ prefix = "" } = {}) {
+      const targetDir = toFilePath(prefix);
+      const blobs = [];
+      const rootExists = await stat(rootDir).then(() => true).catch(() => false);
+
+      if (!rootExists) {
+        return { blobs };
+      }
+
+      const prefixStat = await stat(targetDir).catch(() => null);
+
+      if (prefixStat?.isFile()) {
+        blobs.push({ key: prefix });
+        return { blobs };
+      }
+
+      const walkRoot = prefixStat?.isDirectory() ? targetDir : rootDir;
+      await walk(walkRoot, async (filePath) => {
+        const key = normalizeKey(filePath);
+        if (key.startsWith(prefix)) {
+          blobs.push({ key });
+        }
+      });
+
+      return { blobs };
+    },
+  };
+};
+
+const createBlobStore = () =>
+  getStore({
+    name: "babyphone-signaling",
+    consistency: "strong",
+  });
+
+let storePromise;
+
+const getSignalStore = async () => {
+  if (!storePromise) {
+    storePromise = (async () => {
+      try {
+        const candidate = createBlobStore();
+        await candidate.list({ prefix: "__healthcheck__" });
+        return candidate;
+      } catch (error) {
+        console.warn("Falling back to local signaling store:", error instanceof Error ? error.message : error);
+        await mkdir(LOCAL_STORE_ROOT, { recursive: true });
+        return createLocalStore(LOCAL_STORE_ROOT);
+      }
+    })();
+  }
+
+  return storePromise;
+};
+
 const safeRoomId = (value) => String(value || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 24);
 const safeDeviceId = (value) => String(value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
 
@@ -36,6 +139,7 @@ const parseJson = async (req) => {
 };
 
 const listParticipants = async (roomId, now) => {
+  const store = await getSignalStore();
   const { blobs } = await store.list({ prefix: `rooms/${roomId}/participants/` });
   const participants = [];
 
@@ -58,6 +162,7 @@ const listParticipants = async (roomId, now) => {
 };
 
 const listMessages = async (roomId, deviceId, after, now) => {
+  const store = await getSignalStore();
   const { blobs } = await store.list({ prefix: messageKeyPrefix(roomId) });
   const keys = blobs.map((blob) => blob.key).sort();
   const visible = [];
@@ -95,6 +200,7 @@ const listMessages = async (roomId, deviceId, after, now) => {
 };
 
 const upsertParticipant = async (body) => {
+  const store = await getSignalStore();
   const roomId = safeRoomId(body.roomId);
   const deviceId = safeDeviceId(body.deviceId);
 
@@ -117,6 +223,7 @@ const upsertParticipant = async (body) => {
 };
 
 const leaveRoom = async (body) => {
+  const store = await getSignalStore();
   const roomId = safeRoomId(body.roomId);
   const deviceId = safeDeviceId(body.deviceId);
 
@@ -129,6 +236,7 @@ const leaveRoom = async (body) => {
 };
 
 const sendSignal = async (body) => {
+  const store = await getSignalStore();
   const roomId = safeRoomId(body.roomId);
   const senderId = safeDeviceId(body.senderId);
   const targetId = body.targetId ? safeDeviceId(body.targetId) : "*";
