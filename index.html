@@ -152,6 +152,13 @@
         transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
       }
 
+      .choice:disabled {
+        opacity: 0.45;
+        cursor: default;
+        transform: none;
+        box-shadow: none;
+      }
+
       .choice strong,
       .choice span {
         display: block;
@@ -177,6 +184,15 @@
       .match-box {
         display: grid;
         gap: 0.7rem;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .inline-label {
+        margin: 0 0 0.2rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
       }
 
       .code-row {
@@ -196,10 +212,57 @@
         background: rgba(248, 250, 252, 0.92);
       }
 
+      .code-display {
+        display: grid;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,247,240,0.96));
+        border: 1px solid rgba(239, 125, 87, 0.18);
+      }
+
+      .code-value {
+        margin: 0;
+        font-size: clamp(2rem, 10vw, 3.2rem);
+        line-height: 1;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .code-input {
+        text-align: center;
+        font-size: clamp(1.6rem, 8vw, 2.6rem) !important;
+        line-height: 1.1;
+        letter-spacing: 0.04em !important;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        padding: 1.1rem 0.85rem !important;
+      }
+
+      .code-note {
+        margin: 0;
+        text-align: center;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
       .pill-row {
         display: flex;
         flex-wrap: wrap;
         gap: 0.6rem;
+      }
+
+      .match-box > input,
+      .match-box > button,
+      .match-box > .status-chip,
+      .match-box > .code-display,
+      .match-box > .fine,
+      .match-box > .hint,
+      .match-box > .inline-label {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
       }
 
       button {
@@ -210,6 +273,8 @@
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        width: 100%;
+        max-width: 100%;
       }
 
       .primary {
@@ -292,6 +357,29 @@
         color: #266749;
       }
 
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.7rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(239, 125, 87, 0.12);
+        color: #9a4f34;
+        font-size: 0.95rem;
+        line-height: 1.3;
+      }
+
+      .status-chip.ok {
+        background: rgba(47, 133, 90, 0.12);
+        color: #266749;
+      }
+
+      .status-chip .dot {
+        width: 0.7rem;
+        height: 0.7rem;
+        flex: 0 0 auto;
+      }
+
       .stream-box {
         display: grid;
         gap: 0.8rem;
@@ -341,8 +429,11 @@
           <p class="eyebrow">Privat, direkt, verschlüsselt</p>
           <h1>BabyPhone</h1>
           <p class="subtitle">
-            Zwei Smartphones. Eine direkte WebRTC-Verbindung. Auf dem BabyPhone wählst du, ob Audio oder Video
-            gesendet wird. Das ParentPhone hört oder sieht nur den Stream vom Baby.
+            Ganz nah, auch wenn ihr nicht im selben Zimmer seid.
+          </p>
+          <p class="subtitle">
+            BabyPhone verbindet nur euch miteinander: das Baby und die Eltern. Alles bleibt in eurem geschützten
+            Raum, damit ihr euer Kind sicher hören oder sehen könnt, ohne dass jemand anderes mithört oder mitblickt.
           </p>
         </section>
 
@@ -363,26 +454,44 @@
           </section>
 
           <section class="card">
-            <h2>2. Phones matchen</h2>
-            <p class="hint">
-              Nutzt auf beiden Phones denselben Code. Du kannst ihn hier erzeugen oder per Link weitergeben.
-            </p>
-            <div class="match-box">
-              <div class="code-row">
-                <input id="roomCodeInput" maxlength="7" placeholder="123-987" autocomplete="off" inputmode="numeric" />
-                <button class="secondary" id="generateCodeButton" type="button">Code erzeugen</button>
+            <h2 id="step2Heading">2. Phones verbinden</h2>
+            <div class="match-box hidden" id="babyConnectStep">
+              <p class="hint">Wenn du startest, erzeugt das BabyPhone einen kurzen Code und wartet direkt auf das ParentPhone.</p>
+              <button class="primary" id="startBabyButton" type="button">Starten</button>
+              <div class="code-display hidden" id="babyCodeDisplay">
+                <p class="code-value" id="babyCodeValue">123-987</p>
+                <p class="code-note">Diesen Code beim Parent eingeben.</p>
               </div>
-              <div class="pill-row">
-                <button class="ghost" id="copyLinkButton" type="button">Link kopieren</button>
-                <button class="ghost" id="shareLinkButton" type="button">Link teilen</button>
+              <div class="status-chip" id="statusChip">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusText">BabyPhone noch nicht gestartet</span>
               </div>
-              <p class="fine" id="matchHint">
-                Erst Rolle wählen, dann auf beiden Phones denselben kurzen Code eingeben und auf beiden „Verbinden“ tippen.
+              <p class="fine hidden" id="turnHint">
+                Die Phones haben sich gefunden, aber WebRTC konnte keinen direkten Pfad aufbauen. In diesem Netz ist
+                wahrscheinlich ein TURN-Server nötig.
               </p>
+              <button class="secondary hidden" id="disconnectButton" type="button">Trennen</button>
+            </div>
+            <div class="match-box hidden" id="parentConnectStep">
+              <p class="hint">Gib hier den Code vom BabyPhone ein. Das Baby wartet dann bereits auf die Verbindung.</p>
+              <p class="inline-label">Code vom BabyPhone</p>
+              <input class="code-input" id="roomCodeInput" maxlength="7" placeholder="###-###" autocomplete="off" inputmode="numeric" />
+              <button class="primary" id="connectButton" type="button">Verbinden</button>
+              <div class="status-chip" id="parentStatusChip">
+                <span class="dot" id="parentStatusDot"></span>
+                <span id="parentStatusText">Code vom BabyPhone eingeben</span>
+              </div>
+              <p class="fine" id="matchHint">Code eingeben und dann verbinden.</p>
+              <p class="fine hidden" id="parentTurnHint">
+                Die Phones haben sich gefunden, aber WebRTC konnte keinen direkten Pfad aufbauen. In diesem Netz ist
+                wahrscheinlich ein TURN-Server nötig.
+              </p>
+              <button class="secondary hidden" id="parentDisconnectButton" type="button">Trennen</button>
             </div>
           </section>
 
-          <section class="card">
+          <section class="card" id="mediaCard">
+            <div id="mediaCardContent">
             <h2>3. Was soll das Baby senden?</h2>
             <p class="hint">
               Diese Auswahl gilt nur für das BabyPhone. Das ParentPhone empfängt automatisch den gewählten Stream.
@@ -397,23 +506,6 @@
                 <span>Zusätzlich mit Kamera, falls du das Baby sehen möchtest.</span>
               </button>
             </div>
-          </section>
-
-          <section class="card">
-            <div class="status">
-              <div class="status-line">
-                <span class="dot" id="statusDot"></span>
-                <span id="statusText">Bereit zum Starten</span>
-              </div>
-              <div class="chips" id="participantChips"></div>
-              <p class="fine hidden" id="turnHint">
-                Die Phones haben sich gefunden, aber WebRTC konnte keinen direkten Pfad aufbauen. In diesem Netz ist
-                wahrscheinlich ein TURN-Server nötig.
-              </p>
-              <div class="pill-row">
-                <button class="primary" id="connectButton" type="button">Verbinden</button>
-                <button class="secondary hidden" id="disconnectButton" type="button">Trennen</button>
-              </div>
             </div>
           </section>
 
@@ -464,6 +556,7 @@
         connectStartedAt: 0,
         failureMessage: "",
         turnHintVisible: false,
+        babyStarted: false,
         makingOffer: false,
         ignoreOffer: false,
         remoteDescriptionSet: false,
@@ -473,17 +566,27 @@
         roleButtons: [...document.querySelectorAll("[data-role-choice]")],
         mediaButtons: [...document.querySelectorAll("[data-media-choice]")],
         roomCodeInput: document.getElementById("roomCodeInput"),
-        generateCodeButton: document.getElementById("generateCodeButton"),
-        copyLinkButton: document.getElementById("copyLinkButton"),
-        shareLinkButton: document.getElementById("shareLinkButton"),
+        step2Heading: document.getElementById("step2Heading"),
+        startBabyButton: document.getElementById("startBabyButton"),
+        babyConnectStep: document.getElementById("babyConnectStep"),
+        parentConnectStep: document.getElementById("parentConnectStep"),
+        babyCodeDisplay: document.getElementById("babyCodeDisplay"),
+        babyCodeValue: document.getElementById("babyCodeValue"),
         connectButton: document.getElementById("connectButton"),
         disconnectButton: document.getElementById("disconnectButton"),
         statusDot: document.getElementById("statusDot"),
         statusText: document.getElementById("statusText"),
-        participantChips: document.getElementById("participantChips"),
+        statusChip: document.getElementById("statusChip"),
+        parentStatusChip: document.getElementById("parentStatusChip"),
+        parentStatusDot: document.getElementById("parentStatusDot"),
+        parentStatusText: document.getElementById("parentStatusText"),
         turnHint: document.getElementById("turnHint"),
+        parentTurnHint: document.getElementById("parentTurnHint"),
         matchHint: document.getElementById("matchHint"),
+        mediaCard: document.getElementById("mediaCard"),
         streamHint: document.getElementById("streamHint"),
+        mediaCardContent: document.getElementById("mediaCardContent"),
+        parentDisconnectButton: document.getElementById("parentDisconnectButton"),
         localPreview: document.getElementById("localPreview"),
         remoteAudio: document.getElementById("remoteAudio"),
         remoteVideo: document.getElementById("remoteVideo"),
@@ -555,9 +658,13 @@
 
       function render() {
         els.roomCodeInput.value = state.roomCode;
+        els.babyCodeValue.textContent = state.roomCode || "123-987";
+
+        const roleLocked = state.babyStarted || state.connected;
 
         for (const button of els.roleButtons) {
           button.classList.toggle("active", button.dataset.roleChoice === state.role);
+          button.disabled = roleLocked && button.dataset.roleChoice !== state.role;
         }
 
         for (const button of els.mediaButtons) {
@@ -573,43 +680,60 @@
         const roleText = state.role === "baby" ? "BabyPhone" : "ParentPhone";
         const modeText = effectiveMediaMode() === "audio" ? "Audio" : "Video";
 
-        els.matchHint.textContent = state.roomCode
-          ? `Code ${state.roomCode} ist aktiv. Gib denselben Code auf dem zweiten Phone ein.`
-          : "Erst Rolle wählen, dann denselben Code auf beiden Geräten eingeben und auf beiden „Verbinden“ tippen.";
+        const babyStarted = state.role === "baby" && state.babyStarted;
+        els.babyConnectStep.classList.toggle("hidden", state.role !== "baby");
+        els.parentConnectStep.classList.toggle("hidden", state.role !== "parent");
+        els.mediaCard.classList.toggle("hidden", state.role !== "baby");
+        els.mediaCardContent.classList.toggle("hidden", state.role !== "baby");
+        els.step2Heading.textContent = state.role === "baby" ? "2. Verbinden" : "2. Phones verbinden";
+        els.babyCodeDisplay.classList.toggle("hidden", !babyStarted);
+        els.startBabyButton.classList.toggle("hidden", state.role !== "baby");
+        els.startBabyButton.disabled = babyStarted || state.connected;
 
-        els.participantChips.innerHTML = "";
-        if (!state.participants.length) {
-          els.participantChips.innerHTML = '<span class="chip">Noch kein zweites Phone erkannt</span>';
-        }
-
-        for (const participant of state.participants) {
-          const chip = document.createElement("span");
-          chip.className = "chip" + (participant.deviceId === state.deviceId ? " ok" : "");
-          chip.textContent =
-            participant.role === "baby"
-              ? `Baby${participant.deviceId === state.deviceId ? " (dieses Phone)" : ""}`
-              : `Parent${participant.deviceId === state.deviceId ? " (dieses Phone)" : ""}`;
-          els.participantChips.appendChild(chip);
-        }
+        els.matchHint.textContent = state.role === "baby"
+          ? state.babyStarted && state.roomCode
+            ? `Code ${state.roomCode} ist aktiv. Das BabyPhone wartet jetzt auf das ParentPhone.`
+            : "Tippe auf „Starten“, damit das BabyPhone einen Code erzeugt und wartet."
+          : state.roomCode
+            ? "Tippe auf „Verbinden“, sobald der Code korrekt eingegeben ist."
+            : "Gib hier den Code vom BabyPhone ein.";
 
         if (!state.connected) {
-          setStatus("Bereit zum Starten", false);
+          setStatus(
+            state.role === "baby"
+              ? (state.babyStarted ? "BabyPhone wartet auf ParentPhone …" : "BabyPhone noch nicht gestartet")
+              : (state.roomCode ? "ParentPhone bereit zum Verbinden" : "Code vom BabyPhone eingeben"),
+            false
+          );
         } else if (state.failureMessage) {
           setStatus(state.failureMessage, false);
         } else if (sameRoleConflict) {
           setStatus("Beide Phones haben dieselbe Rolle. Bitte ein Phone auf Baby und das andere auf Parent stellen.", false);
         } else if (state.peer?.connectionState === "connected") {
-          setStatus(`${roleText} verbunden • ${modeText}-Stream läuft`, true);
+          setStatus(
+            state.role === "baby"
+              ? `ParentPhone verbunden • ${modeText}-Stream läuft`
+              : `${modeText}-Stream vom BabyPhone verbunden`,
+            true
+          );
         } else if (bothPresent) {
-          setStatus("Beide Phones sind da. Verbindung wird aufgebaut …", false);
+          setStatus("Partner erkannt • Verbindung wird aufgebaut …", false);
         } else {
-          setStatus("Warte auf das zweite Phone …", false);
+          setStatus(
+            state.role === "baby"
+              ? "Noch kein ParentPhone erkannt"
+              : "Noch kein BabyPhone erkannt",
+            false
+          );
         }
 
+        els.connectButton.classList.toggle("hidden", state.role !== "parent");
         els.connectButton.disabled = !state.roomCode || state.connected;
-        els.disconnectButton.classList.toggle("hidden", !state.connected);
+        els.disconnectButton.classList.toggle("hidden", !state.connected || state.role !== "baby");
+        els.parentDisconnectButton.classList.toggle("hidden", !state.connected || state.role !== "parent");
         els.connectButton.textContent = state.connected ? "Verbunden" : "Verbinden";
-        els.turnHint.classList.toggle("hidden", !state.turnHintVisible);
+        els.turnHint.classList.toggle("hidden", !state.turnHintVisible || state.role !== "baby");
+        els.parentTurnHint.classList.toggle("hidden", !state.turnHintVisible || state.role !== "parent");
 
         const showBabyPreview = state.role === "baby" && Boolean(state.localStream);
         const showParentAudio =
@@ -633,6 +757,10 @@
       function setStatus(text, ok) {
         els.statusText.textContent = text;
         els.statusDot.classList.toggle("ok", ok);
+        els.statusChip.classList.toggle("ok", ok);
+        els.parentStatusText.textContent = text;
+        els.parentStatusDot.classList.toggle("ok", ok);
+        els.parentStatusChip.classList.toggle("ok", ok);
       }
 
       function setTurnNeeded(message) {
@@ -950,6 +1078,7 @@
         state.lastCursor = "";
         state.participants = [];
         state.connectStartedAt = 0;
+        state.babyStarted = false;
         clearFailureState();
 
         try {
@@ -979,7 +1108,7 @@
 
       async function connect() {
         if (!state.roomCode) {
-          state.roomCode = randomRoomCode();
+          throw new Error("Bitte zuerst den Code eingeben.");
         }
 
         persistUrl();
@@ -998,53 +1127,23 @@
         render();
       }
 
-      async function copyLink() {
-        if (!state.roomCode) {
-          state.roomCode = randomRoomCode();
-          persistUrl();
-          render();
-        }
+      async function startBaby() {
+        state.roomCode = randomRoomCode();
+        state.babyStarted = true;
 
-        const url = new URL(window.location.href);
-        url.searchParams.set("room", roomCodeForApi(state.roomCode));
-
-        if (state.role === "baby") {
-          url.searchParams.set("role", "parent");
-        }
-
-        await navigator.clipboard.writeText(url.toString());
-        setStatus("Link kopiert", true);
-      }
-
-      async function shareLink() {
-        if (!navigator.share) {
-          return copyLink();
-        }
-
-        if (!state.roomCode) {
-          state.roomCode = randomRoomCode();
-          persistUrl();
-          render();
-        }
-
-        const url = new URL(window.location.href);
-        url.searchParams.set("room", roomCodeForApi(state.roomCode));
-
-        if (state.role === "baby") {
-          url.searchParams.set("role", "parent");
-        }
-
-        await navigator.share({
-          title: "BabyPhone",
-          text: "Verbinde dich mit meinem BabyPhone",
-          url: url.toString(),
-        });
+        persistUrl();
+        render();
+        await connect();
       }
 
       function bindEvents() {
         for (const button of els.roleButtons) {
           button.addEventListener("click", () => {
             state.role = button.dataset.roleChoice;
+            state.babyStarted = false;
+            if (state.role === "parent" && !new URL(window.location.href).searchParams.get("room")) {
+              state.roomCode = "";
+            }
             persistUrl();
             render();
           });
@@ -1068,18 +1167,10 @@
           render();
         });
 
-        els.generateCodeButton.addEventListener("click", () => {
-          state.roomCode = randomRoomCode();
-          persistUrl();
-          render();
-        });
-
-        els.copyLinkButton.addEventListener("click", () => {
-          copyLink().catch((error) => setStatus(error.message, false));
-        });
-
-        els.shareLinkButton.addEventListener("click", () => {
-          shareLink().catch((error) => setStatus(error.message, false));
+        els.startBabyButton.addEventListener("click", () => {
+          startBaby().catch((error) => {
+            setStatus(error.message, false);
+          });
         });
 
         els.connectButton.addEventListener("click", () => {
@@ -1089,6 +1180,12 @@
         });
 
         els.disconnectButton.addEventListener("click", () => {
+          disconnect().catch((error) => {
+            setStatus(error.message, false);
+          });
+        });
+
+        els.parentDisconnectButton.addEventListener("click", () => {
           disconnect().catch((error) => {
             setStatus(error.message, false);
           });
@@ -1114,9 +1211,6 @@
       }
 
       syncStateFromUrl();
-      if (!state.roomCode) {
-        state.roomCode = randomRoomCode();
-      }
       persistUrl();
       bindEvents();
       render();
