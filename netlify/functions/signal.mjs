@@ -113,8 +113,7 @@ const upsertParticipant = async (body) => {
   };
 
   await store.setJSON(participantKey(roomId, deviceId), participant);
-  const participants = await listParticipants(roomId, now);
-  return json(200, { ok: true, participants, participant });
+  return json(200, { ok: true, participant });
 };
 
 const leaveRoom = async (body) => {
@@ -178,37 +177,43 @@ const pollRoom = async (url) => {
 };
 
 export default async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: CORS_HEADERS,
+  try {
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: CORS_HEADERS,
+      });
+    }
+
+    const url = new URL(req.url);
+
+    if (req.method === "GET") {
+      return pollRoom(url);
+    }
+
+    if (req.method !== "POST") {
+      return json(405, { error: "Method not allowed." });
+    }
+
+    const body = await parseJson(req);
+    const action = body.action || "";
+
+    if (action === "join" || action === "heartbeat") {
+      return upsertParticipant(body);
+    }
+
+    if (action === "leave") {
+      return leaveRoom(body);
+    }
+
+    if (action === "send") {
+      return sendSignal(body);
+    }
+
+    return json(400, { error: "Unknown action." });
+  } catch (error) {
+    return json(500, {
+      error: error instanceof Error ? error.message : "Unknown server error.",
     });
   }
-
-  const url = new URL(req.url);
-
-  if (req.method === "GET") {
-    return pollRoom(url);
-  }
-
-  if (req.method !== "POST") {
-    return json(405, { error: "Method not allowed." });
-  }
-
-  const body = await parseJson(req);
-  const action = body.action || "";
-
-  if (action === "join" || action === "heartbeat") {
-    return upsertParticipant(body);
-  }
-
-  if (action === "leave") {
-    return leaveRoom(body);
-  }
-
-  if (action === "send") {
-    return sendSignal(body);
-  }
-
-  return json(400, { error: "Unknown action." });
 };
