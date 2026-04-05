@@ -583,11 +583,11 @@
           </section>
         </section>
       </div>
-      <p class="build-version">Version 1.0.9.20260405181546</p>
+      <p class="build-version">Version 1.0.10.20260405181957</p>
     </main>
 
     <script>
-      const APP_VERSION = "1.0.9.20260405181546";
+      const APP_VERSION = "1.0.10.20260405181957";
       const state = {
         role: "baby",
         roomCode: "",
@@ -789,10 +789,10 @@
           state.parentMediaMode === "audio"
             ? "Aktiv: Audio"
             : state.parentMediaMode === "video"
-              ? "Aktiv: Video"
+              ? "Aktiv: Video mit Audio"
               : "Noch kein Medium aktiv";
-        els.remoteAudio.classList.toggle("hidden", state.parentMediaMode !== "audio");
-        els.remoteAudioNote.classList.toggle("hidden", state.parentMediaMode !== "audio");
+        els.remoteAudio.classList.toggle("hidden", state.parentMediaMode === "none");
+        els.remoteAudioNote.classList.toggle("hidden", state.parentMediaMode === "none");
 
         const showBabyPreview = state.role === "baby" && Boolean(state.localStream);
         const showParentAudio =
@@ -830,7 +830,9 @@
             ? `Dieses ${roleText} ist verbunden. Wähle jetzt Audio oder Video vom BabyPhone.`
             : state.parentMediaMode === "none"
               ? `Dieses ${roleText} ist verbunden. Wähle jetzt Audio oder Video vom BabyPhone.`
-              : `Dieses ${roleText} empfängt ${modeText} vom BabyPhone.`;
+              : state.parentMediaMode === "video"
+                ? `Dieses ${roleText} empfängt Video mit Audio vom BabyPhone.`
+                : `Dieses ${roleText} empfängt Audio vom BabyPhone.`;
         }
       }
 
@@ -850,7 +852,7 @@
 
         const audioTrack = state.localStream.getAudioTracks()[0];
         const videoTrack = state.localStream.getVideoTracks()[0];
-        const wantsAudio = mode === "audio";
+        const wantsAudio = mode === "audio" || mode === "video";
         const wantsVideo = mode === "video";
 
         if (audioTrack) {
@@ -915,7 +917,7 @@
           return;
         }
 
-        const audioActive = state.parentMediaMode === "audio";
+        const audioActive = state.parentMediaMode === "audio" || state.parentMediaMode === "video";
         els.remoteAudio.defaultMuted = !audioActive;
         els.remoteAudio.muted = !audioActive;
         els.remoteAudio.volume = audioActive ? 1 : 0;
