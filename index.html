@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>BabyPhone</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: linear-gradient(180deg, #fff6eb 0%, #f3f7ff 48%, #eef5f0 100%);
+        --panel: rgba(255, 255, 255, 0.82);
+        --panel-border: rgba(64, 55, 44, 0.1);
+        --text: #1f2933;
+        --muted: #6b7280;
+        --accent: #ef7d57;
+        --accent-strong: #d86d49;
+        --accent-soft: rgba(239, 125, 87, 0.14);
+        --ok: #2f855a;
+        --warn: #b7791f;
+        --shadow: 0 20px 60px rgba(63, 53, 41, 0.12);
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        z-index: 0;
+        border-radius: 999px;
+        filter: blur(12px);
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      body::before {
+        width: 18rem;
+        height: 18rem;
+        top: -4rem;
+        right: -4rem;
+        background: rgba(255, 210, 181, 0.7);
+      }
+
+      body::after {
+        width: 15rem;
+        height: 15rem;
+        left: -5rem;
+        bottom: 1rem;
+        background: rgba(182, 220, 255, 0.55);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 32rem);
+        margin: 0 auto;
+        padding: 1.2rem 1rem 2rem;
+      }
+
+      .shell {
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .hero {
+        padding: 1.35rem 1.25rem 1rem;
+        background:
+          radial-gradient(circle at top left, rgba(239, 125, 87, 0.2), transparent 32%),
+          radial-gradient(circle at top right, rgba(111, 190, 255, 0.17), transparent 28%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin: 0 0 0.5rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 7vw, 2.8rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+
+      .subtitle {
+        margin: 0.8rem 0 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .content {
+        padding: 0 1rem 1rem;
+      }
+
+      .card {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(31, 41, 51, 0.08);
+        border-radius: var(--radius-lg);
+      }
+
+      .card h2 {
+        margin: 0 0 0.3rem;
+        font-size: 1.05rem;
+      }
+
+      .hint {
+        margin: 0 0 0.9rem;
+        color: var(--muted);
+        font-size: 0.96rem;
+        line-height: 1.45;
+      }
+
+      .role-grid,
+      .media-grid {
+        display: grid;
+        gap: 0.8rem;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .choice {
+        border: 1px solid rgba(31, 41, 51, 0.09);
+        border-radius: 18px;
+        background: #fff;
+        padding: 0.95rem;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .choice strong,
+      .choice span {
+        display: block;
+      }
+
+      .choice strong {
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .choice span {
+        color: var(--muted);
+        line-height: 1.35;
+        font-size: 0.92rem;
+      }
+
+      .choice.active {
+        border-color: var(--accent);
+        box-shadow: inset 0 0 0 1px var(--accent), 0 12px 30px rgba(239, 125, 87, 0.14);
+        transform: translateY(-1px);
+      }
+
+      .match-box {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .code-row {
+        display: flex;
+        gap: 0.7rem;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        border: 1px solid rgba(31, 41, 51, 0.12);
+        border-radius: 16px;
+        padding: 0.95rem 1rem;
+        font: inherit;
+        font-size: 1.05rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        background: rgba(248, 250, 252, 0.92);
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 16px;
+        padding: 0.95rem 1.05rem;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: white;
+      }
+
+      .primary:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .secondary {
+        background: #fff;
+        color: var(--text);
+        border: 1px solid rgba(31, 41, 51, 0.12);
+      }
+
+      .ghost {
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--text);
+      }
+
+      .status {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .status-line {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        font-weight: 600;
+      }
+
+      .dot {
+        width: 0.8rem;
+        height: 0.8rem;
+        border-radius: 999px;
+        background: var(--warn);
+        box-shadow: 0 0 0 0 rgba(183, 121, 31, 0.35);
+        animation: pulse 1.8s infinite;
+      }
+
+      .dot.ok {
+        background: var(--ok);
+        box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.35);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(183, 121, 31, 0.32);
+        }
+
+        70% {
+          box-shadow: 0 0 0 12px rgba(183, 121, 31, 0);
+        }
+
+        100% {
+          box-shadow: 0 0 0 0 rgba(183, 121, 31, 0);
+        }
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+
+      .chip {
+        padding: 0.45rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(239, 125, 87, 0.12);
+        color: #9a4f34;
+        font-size: 0.92rem;
+      }
+
+      .chip.ok {
+        background: rgba(47, 133, 90, 0.12);
+        color: #266749;
+      }
+
+      .stream-box {
+        display: grid;
+        gap: 0.8rem;
+      }
+
+      video,
+      audio {
+        width: 100%;
+        border-radius: 18px;
+        background: #0f172a;
+      }
+
+      video {
+        aspect-ratio: 3 / 4;
+        object-fit: cover;
+      }
+
+      .fine {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 640px) {
+        .role-grid,
+        .media-grid,
+        .code-row {
+          grid-template-columns: 1fr;
+          display: grid;
+        }
+
+        .code-row button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="shell">
+        <section class="hero">
+          <p class="eyebrow">Privat, direkt, verschlüsselt</p>
+          <h1>BabyPhone</h1>
+          <p class="subtitle">
+            Zwei Smartphones. Eine direkte WebRTC-Verbindung. Auf dem BabyPhone wählst du, ob Audio oder Video
+            gesendet wird. Das ParentPhone hört oder sieht nur den Stream vom Baby.
+          </p>
+        </section>
+
+        <section class="content">
+          <section class="card">
+            <h2>1. Rolle wählen</h2>
+            <p class="hint">Jedes Smartphone startet mit einer klaren Rolle.</p>
+            <div class="role-grid">
+              <button class="choice" data-role-choice="baby" type="button">
+                <strong>Baby</strong>
+                <span>Dieses Phone bleibt beim Baby und sendet später den Stream.</span>
+              </button>
+              <button class="choice" data-role-choice="parent" type="button">
+                <strong>Parent</strong>
+                <span>Dieses Phone bleibt bei den Eltern und empfängt den Stream.</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>2. Phones matchen</h2>
+            <p class="hint">
+              Nutzt auf beiden Phones denselben Code. Du kannst ihn hier erzeugen oder per Link weitergeben.
+            </p>
+            <div class="match-box">
+              <div class="code-row">
+                <input id="roomCodeInput" maxlength="7" placeholder="123-987" autocomplete="off" inputmode="numeric" />
+                <button class="secondary" id="generateCodeButton" type="button">Code erzeugen</button>
+              </div>
+              <div class="pill-row">
+                <button class="ghost" id="copyLinkButton" type="button">Link kopieren</button>
+                <button class="ghost" id="shareLinkButton" type="button">Link teilen</button>
+              </div>
+              <p class="fine" id="matchHint">
+                Erst Rolle wählen, dann auf beiden Phones denselben kurzen Code eingeben und auf beiden „Verbinden“ tippen.
+              </p>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>3. Was soll das Baby senden?</h2>
+            <p class="hint">
+              Diese Auswahl gilt nur für das BabyPhone. Das ParentPhone empfängt automatisch den gewählten Stream.
+            </p>
+            <div class="media-grid">
+              <button class="choice" data-media-choice="audio" type="button">
+                <strong>Audio</strong>
+                <span>Leicht, sparsam und ideal fürs Babyphone.</span>
+              </button>
+              <button class="choice" data-media-choice="video" type="button">
+                <strong>Video</strong>
+                <span>Zusätzlich mit Kamera, falls du das Baby sehen möchtest.</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="status">
+              <div class="status-line">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusText">Bereit zum Starten</span>
+              </div>
+              <div class="chips" id="participantChips"></div>
+              <p class="fine hidden" id="turnHint">
+                Die Phones haben sich gefunden, aber WebRTC konnte keinen direkten Pfad aufbauen. In diesem Netz ist
+                wahrscheinlich ein TURN-Server nötig.
+              </p>
+              <div class="pill-row">
+                <button class="primary" id="connectButton" type="button">Verbinden</button>
+                <button class="secondary hidden" id="disconnectButton" type="button">Trennen</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card stream-box">
+            <h2>Live-Ansicht</h2>
+            <p class="hint" id="streamHint">Nach dem Matching startet der Stream automatisch.</p>
+
+            <div id="babyPreviewBox" class="hidden">
+              <video id="localPreview" muted autoplay playsinline></video>
+              <p class="fine">Auf dem BabyPhone siehst du hier deine eigene Vorschau.</p>
+            </div>
+
+            <div id="parentAudioBox" class="hidden">
+              <audio id="remoteAudio" autoplay playsinline controls></audio>
+              <p class="fine">Auf dem ParentPhone kommt hier der Ton an.</p>
+            </div>
+
+            <div id="parentVideoBox" class="hidden">
+              <video id="remoteVideo" autoplay playsinline controls></video>
+              <p class="fine">Auf dem ParentPhone kommt hier das Bild vom Baby an.</p>
+            </div>
+          </section>
+
+          <section class="card">
+            <p class="fine">
+              Hinweis: Für echte Nutzung sollten die Displays aktiv bleiben und beide Browser-Tabs geöffnet bleiben.
+              Der Prototyp nutzt einen öffentlichen STUN-Server und Netlify für das Signaling.
+            </p>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const state = {
+        role: "baby",
+        mediaMode: "audio",
+        roomCode: "",
+        deviceId: loadOrCreateDeviceId(),
+        connected: false,
+        lastCursor: "",
+        participants: [],
+        peer: null,
+        localStream: null,
+        remoteStream: null,
+        pollTimer: null,
+        heartbeatTimer: null,
+        connectStartedAt: 0,
+        failureMessage: "",
+        turnHintVisible: false,
+        makingOffer: false,
+        ignoreOffer: false,
+        remoteDescriptionSet: false,
+      };
+
+      const els = {
+        roleButtons: [...document.querySelectorAll("[data-role-choice]")],
+        mediaButtons: [...document.querySelectorAll("[data-media-choice]")],
+        roomCodeInput: document.getElementById("roomCodeInput"),
+        generateCodeButton: document.getElementById("generateCodeButton"),
+        copyLinkButton: document.getElementById("copyLinkButton"),
+        shareLinkButton: document.getElementById("shareLinkButton"),
+        connectButton: document.getElementById("connectButton"),
+        disconnectButton: document.getElementById("disconnectButton"),
+        statusDot: document.getElementById("statusDot"),
+        statusText: document.getElementById("statusText"),
+        participantChips: document.getElementById("participantChips"),
+        turnHint: document.getElementById("turnHint"),
+        matchHint: document.getElementById("matchHint"),
+        streamHint: document.getElementById("streamHint"),
+        localPreview: document.getElementById("localPreview"),
+        remoteAudio: document.getElementById("remoteAudio"),
+        remoteVideo: document.getElementById("remoteVideo"),
+        babyPreviewBox: document.getElementById("babyPreviewBox"),
+        parentAudioBox: document.getElementById("parentAudioBox"),
+        parentVideoBox: document.getElementById("parentVideoBox"),
+      };
+
+      const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+
+      function loadOrCreateDeviceId() {
+        const existing = localStorage.getItem("babyphone-device-id");
+        if (existing) {
+          return existing;
+        }
+        const created = crypto.randomUUID();
+        localStorage.setItem("babyphone-device-id", created);
+        return created;
+      }
+
+      function formatRoomCode(value) {
+        const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
+        if (digits.length <= 3) {
+          return digits;
+        }
+        return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+      }
+
+      function roomCodeForApi(value) {
+        return String(value || "").replace(/\D/g, "").slice(0, 6);
+      }
+
+      function randomRoomCode() {
+        return formatRoomCode(Math.floor(100000 + Math.random() * 900000));
+      }
+
+      function syncStateFromUrl() {
+        const url = new URL(window.location.href);
+        const role = url.searchParams.get("role");
+        const room = url.searchParams.get("room");
+        const media = url.searchParams.get("media");
+
+        if (role === "baby" || role === "parent") {
+          state.role = role;
+        }
+
+        if (room) {
+          state.roomCode = formatRoomCode(room);
+        }
+
+        if (media === "audio" || media === "video") {
+          state.mediaMode = media;
+        }
+      }
+
+      function persistUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set("role", state.role);
+
+        if (state.roomCode) {
+          url.searchParams.set("room", roomCodeForApi(state.roomCode));
+        } else {
+          url.searchParams.delete("room");
+        }
+
+        url.searchParams.set("media", state.mediaMode);
+        window.history.replaceState({}, "", url);
+      }
+
+      function render() {
+        els.roomCodeInput.value = state.roomCode;
+
+        for (const button of els.roleButtons) {
+          button.classList.toggle("active", button.dataset.roleChoice === state.role);
+        }
+
+        for (const button of els.mediaButtons) {
+          const active = button.dataset.mediaChoice === state.mediaMode;
+          button.classList.toggle("active", active);
+        }
+
+        const baby = getBabyParticipant();
+        const parent = getParentParticipant();
+        const bothPresent = Boolean(baby && parent);
+        const remoteParticipant = getRemoteParticipant();
+        const sameRoleConflict = Boolean(remoteParticipant && remoteParticipant.role === state.role);
+        const roleText = state.role === "baby" ? "BabyPhone" : "ParentPhone";
+        const modeText = effectiveMediaMode() === "audio" ? "Audio" : "Video";
+
+        els.matchHint.textContent = state.roomCode
+          ? `Code ${state.roomCode} ist aktiv. Gib denselben Code auf dem zweiten Phone ein.`
+          : "Erst Rolle wählen, dann denselben Code auf beiden Geräten eingeben und auf beiden „Verbinden“ tippen.";
+
+        els.participantChips.innerHTML = "";
+        if (!state.participants.length) {
+          els.participantChips.innerHTML = '<span class="chip">Noch kein zweites Phone erkannt</span>';
+        }
+
+        for (const participant of state.participants) {
+          const chip = document.createElement("span");
+          chip.className = "chip" + (participant.deviceId === state.deviceId ? " ok" : "");
+          chip.textContent =
+            participant.role === "baby"
+              ? `Baby${participant.deviceId === state.deviceId ? " (dieses Phone)" : ""}`
+              : `Parent${participant.deviceId === state.deviceId ? " (dieses Phone)" : ""}`;
+          els.participantChips.appendChild(chip);
+        }
+
+        if (!state.connected) {
+          setStatus("Bereit zum Starten", false);
+        } else if (state.failureMessage) {
+          setStatus(state.failureMessage, false);
+        } else if (sameRoleConflict) {
+          setStatus("Beide Phones haben dieselbe Rolle. Bitte ein Phone auf Baby und das andere auf Parent stellen.", false);
+        } else if (state.peer?.connectionState === "connected") {
+          setStatus(`${roleText} verbunden • ${modeText}-Stream läuft`, true);
+        } else if (bothPresent) {
+          setStatus("Beide Phones sind da. Verbindung wird aufgebaut …", false);
+        } else {
+          setStatus("Warte auf das zweite Phone …", false);
+        }
+
+        els.connectButton.disabled = !state.roomCode || state.connected;
+        els.disconnectButton.classList.toggle("hidden", !state.connected);
+        els.connectButton.textContent = state.connected ? "Verbunden" : "Verbinden";
+        els.turnHint.classList.toggle("hidden", !state.turnHintVisible);
+
+        const showBabyPreview = state.role === "baby" && Boolean(state.localStream);
+        const showParentAudio =
+          state.role === "parent" && Boolean(state.remoteStream) && effectiveMediaMode() === "audio";
+        const showParentVideo =
+          state.role === "parent" && Boolean(state.remoteStream) && effectiveMediaMode() === "video";
+
+        els.babyPreviewBox.classList.toggle("hidden", !showBabyPreview);
+        els.parentAudioBox.classList.toggle("hidden", !showParentAudio);
+        els.parentVideoBox.classList.toggle("hidden", !showParentVideo);
+
+        if (!state.connected) {
+          els.streamHint.textContent = "Nach dem Matching startet der Stream automatisch.";
+        } else if (state.role === "baby") {
+          els.streamHint.textContent = `Dieses ${roleText} sendet ${modeText}.`;
+        } else {
+          els.streamHint.textContent = `Dieses ${roleText} empfängt ${modeText} vom BabyPhone.`;
+        }
+      }
+
+      function setStatus(text, ok) {
+        els.statusText.textContent = text;
+        els.statusDot.classList.toggle("ok", ok);
+      }
+
+      function setTurnNeeded(message) {
+        state.failureMessage =
+          message ||
+          "Direkte Verbindung fehlgeschlagen. In diesem Netz wird wahrscheinlich ein TURN-Server benötigt.";
+        state.turnHintVisible = true;
+        render();
+      }
+
+      function clearFailureState() {
+        state.failureMessage = "";
+        state.turnHintVisible = false;
+      }
+
+      function getBabyParticipant() {
+        return state.participants.find((participant) => participant.role === "baby");
+      }
+
+      function getParentParticipant() {
+        return state.participants.find((participant) => participant.role === "parent");
+      }
+
+      function getRemoteParticipant() {
+        return state.participants.find((participant) => participant.deviceId !== state.deviceId);
+      }
+
+      function effectiveMediaMode() {
+        const baby = getBabyParticipant();
+        if (baby) {
+          return baby.wantsVideo ? "video" : "audio";
+        }
+        return state.mediaMode;
+      }
+
+      async function api(url, options = {}) {
+        const response = await fetch(url, {
+          headers: {
+            "content-type": "application/json",
+          },
+          ...options,
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || "Request fehlgeschlagen.");
+        }
+        return data;
+      }
+
+      async function signal(action, extra = {}) {
+        return api("/api/signal", {
+          method: "POST",
+          body: JSON.stringify({
+            action,
+            roomId: roomCodeForApi(state.roomCode),
+            deviceId: state.deviceId,
+            role: state.role,
+            wantsVideo: state.mediaMode === "video",
+            ...extra,
+          }),
+        });
+      }
+
+      async function startLocalMediaIfNeeded() {
+        if (state.role !== "baby" || state.localStream) {
+          return;
+        }
+
+        state.localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: state.mediaMode === "video",
+        });
+
+        if (state.mediaMode === "video") {
+          els.localPreview.srcObject = state.localStream;
+        }
+      }
+
+      async function ensurePeer() {
+        if (state.peer) {
+          return state.peer;
+        }
+
+        const peer = new RTCPeerConnection({ iceServers });
+        state.peer = peer;
+        state.remoteStream = new MediaStream();
+        state.remoteDescriptionSet = false;
+
+        if (state.role === "baby") {
+          await startLocalMediaIfNeeded();
+          for (const track of state.localStream.getTracks()) {
+            peer.addTrack(track, state.localStream);
+          }
+        } else {
+          peer.addTransceiver("audio", { direction: "recvonly" });
+          peer.addTransceiver("video", { direction: "recvonly" });
+          els.remoteAudio.srcObject = state.remoteStream;
+          els.remoteVideo.srcObject = state.remoteStream;
+        }
+
+        peer.onicecandidate = async (event) => {
+          if (!event.candidate) {
+            return;
+          }
+          const remote = getRemoteParticipant();
+          if (!remote) {
+            return;
+          }
+
+          await signal("send", {
+            senderId: state.deviceId,
+            targetId: remote.deviceId,
+            type: "ice-candidate",
+            payload: event.candidate,
+          });
+        };
+
+        peer.ontrack = (event) => {
+          event.streams[0].getTracks().forEach((track) => {
+            state.remoteStream.addTrack(track);
+          });
+          render();
+        };
+
+        peer.onconnectionstatechange = () => {
+          if (peer.connectionState === "failed") {
+            setTurnNeeded("Direkte Verbindung fehlgeschlagen. Wahrscheinlich ist in diesem Netz ein TURN-Server nötig.");
+            return;
+          }
+
+          if (peer.connectionState === "disconnected") {
+            setTurnNeeded("Verbindung unterbrochen. Wenn sie nicht zurückkommt, ist in diesem Netz wahrscheinlich ein TURN-Server nötig.");
+            return;
+          }
+
+          if (peer.connectionState === "closed") {
+            render();
+            return;
+          }
+
+          if (peer.connectionState === "connected") {
+            clearFailureState();
+            render();
+          }
+        };
+
+        peer.oniceconnectionstatechange = () => {
+          if (peer.iceConnectionState === "failed") {
+            setTurnNeeded("ICE-Verbindung fehlgeschlagen. Wahrscheinlich ist in diesem Netz ein TURN-Server nötig.");
+            return;
+          }
+
+          if (peer.iceConnectionState === "connected" || peer.iceConnectionState === "completed") {
+            clearFailureState();
+            render();
+          }
+        };
+
+        return peer;
+      }
+
+      async function createOfferIfNeeded() {
+        if (state.role !== "parent") {
+          return;
+        }
+
+        const baby = getBabyParticipant();
+        if (!baby || !state.connected) {
+          return;
+        }
+
+        const peer = await ensurePeer();
+
+        if (peer.signalingState !== "stable" || state.makingOffer || peer.currentLocalDescription) {
+          return;
+        }
+
+        state.makingOffer = true;
+        try {
+          const offer = await peer.createOffer();
+          await peer.setLocalDescription(offer);
+
+          await signal("send", {
+            senderId: state.deviceId,
+            targetId: baby.deviceId,
+            type: "offer",
+            payload: peer.localDescription,
+          });
+        } finally {
+          state.makingOffer = false;
+        }
+      }
+
+      async function handleSignalMessage(message) {
+        const remote = getRemoteParticipant();
+        const polite = state.role === "baby";
+        const peer = await ensurePeer();
+
+        if (message.type === "offer") {
+          const offerCollision = state.makingOffer || peer.signalingState !== "stable";
+          state.ignoreOffer = !polite && offerCollision;
+          if (state.ignoreOffer) {
+            return;
+          }
+
+          await peer.setRemoteDescription(message.payload);
+          state.remoteDescriptionSet = true;
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+
+          await signal("send", {
+            senderId: state.deviceId,
+            targetId: remote?.deviceId,
+            type: "answer",
+            payload: peer.localDescription,
+          });
+          return;
+        }
+
+        if (message.type === "answer") {
+          await peer.setRemoteDescription(message.payload);
+          state.remoteDescriptionSet = true;
+          return;
+        }
+
+        if (message.type === "ice-candidate") {
+          try {
+            await peer.addIceCandidate(message.payload);
+          } catch (error) {
+            if (!state.ignoreOffer) {
+              console.error(error);
+            }
+          }
+        }
+      }
+
+      async function refreshRoom() {
+        if (!state.connected) {
+          return;
+        }
+
+        const query = new URLSearchParams({
+          roomId: roomCodeForApi(state.roomCode),
+          deviceId: state.deviceId,
+        });
+
+        if (state.lastCursor) {
+          query.set("after", state.lastCursor);
+        }
+
+        const data = await api(`/api/signal?${query}`);
+        state.participants = data.participants || [];
+        state.lastCursor = data.cursor || state.lastCursor;
+
+        for (const message of data.messages || []) {
+          await handleSignalMessage(message);
+        }
+
+        render();
+        await createOfferIfNeeded();
+
+        if (
+          !state.failureMessage &&
+          state.connected &&
+          state.connectStartedAt &&
+          Date.now() - state.connectStartedAt > 20000 &&
+          getBabyParticipant() &&
+          getParentParticipant() &&
+          state.peer?.connectionState !== "connected"
+        ) {
+          setTurnNeeded("Die Phones sind gematcht, aber nach 20 Sekunden gibt es noch keine direkte Verbindung. Wahrscheinlich ist ein TURN-Server nötig.");
+        }
+      }
+
+      function startPolling() {
+        stopPolling();
+
+        const poll = async () => {
+          if (!state.connected) {
+            return;
+          }
+
+          try {
+            await refreshRoom();
+          } catch (error) {
+            setStatus(error.message, false);
+          } finally {
+            state.pollTimer = window.setTimeout(poll, 1500);
+          }
+        };
+
+        state.heartbeatTimer = window.setInterval(() => {
+          signal("heartbeat").catch((error) => console.error(error));
+        }, 8000);
+
+        poll();
+      }
+
+      function stopPolling() {
+        if (state.pollTimer) {
+          window.clearTimeout(state.pollTimer);
+          state.pollTimer = null;
+        }
+
+        if (state.heartbeatTimer) {
+          window.clearInterval(state.heartbeatTimer);
+          state.heartbeatTimer = null;
+        }
+      }
+
+      async function disconnect() {
+        stopPolling();
+        state.connected = false;
+        state.lastCursor = "";
+        state.participants = [];
+        state.connectStartedAt = 0;
+        clearFailureState();
+
+        try {
+          if (state.roomCode) {
+            await signal("leave");
+          }
+        } catch (error) {
+          console.error(error);
+        }
+
+        if (state.peer) {
+          state.peer.close();
+          state.peer = null;
+        }
+
+        if (state.localStream) {
+          state.localStream.getTracks().forEach((track) => track.stop());
+          state.localStream = null;
+        }
+
+        state.remoteStream = null;
+        els.localPreview.srcObject = null;
+        els.remoteAudio.srcObject = null;
+        els.remoteVideo.srcObject = null;
+        render();
+      }
+
+      async function connect() {
+        if (!state.roomCode) {
+          state.roomCode = randomRoomCode();
+        }
+
+        persistUrl();
+        setStatus("Verbinde …", false);
+        clearFailureState();
+        render();
+
+        if (state.role === "baby") {
+          await startLocalMediaIfNeeded();
+        }
+
+        await signal("join");
+        state.connected = true;
+        state.connectStartedAt = Date.now();
+        startPolling();
+        render();
+      }
+
+      async function copyLink() {
+        if (!state.roomCode) {
+          state.roomCode = randomRoomCode();
+          persistUrl();
+          render();
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("room", roomCodeForApi(state.roomCode));
+
+        if (state.role === "baby") {
+          url.searchParams.set("role", "parent");
+        }
+
+        await navigator.clipboard.writeText(url.toString());
+        setStatus("Link kopiert", true);
+      }
+
+      async function shareLink() {
+        if (!navigator.share) {
+          return copyLink();
+        }
+
+        if (!state.roomCode) {
+          state.roomCode = randomRoomCode();
+          persistUrl();
+          render();
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("room", roomCodeForApi(state.roomCode));
+
+        if (state.role === "baby") {
+          url.searchParams.set("role", "parent");
+        }
+
+        await navigator.share({
+          title: "BabyPhone",
+          text: "Verbinde dich mit meinem BabyPhone",
+          url: url.toString(),
+        });
+      }
+
+      function bindEvents() {
+        for (const button of els.roleButtons) {
+          button.addEventListener("click", () => {
+            state.role = button.dataset.roleChoice;
+            persistUrl();
+            render();
+          });
+        }
+
+        for (const button of els.mediaButtons) {
+          button.addEventListener("click", () => {
+            if (state.role === "parent") {
+              setStatus("Die Auswahl für Audio oder Video triffst du auf dem BabyPhone.", false);
+              return;
+            }
+            state.mediaMode = button.dataset.mediaChoice;
+            persistUrl();
+            render();
+          });
+        }
+
+        els.roomCodeInput.addEventListener("input", (event) => {
+          state.roomCode = formatRoomCode(event.target.value);
+          persistUrl();
+          render();
+        });
+
+        els.generateCodeButton.addEventListener("click", () => {
+          state.roomCode = randomRoomCode();
+          persistUrl();
+          render();
+        });
+
+        els.copyLinkButton.addEventListener("click", () => {
+          copyLink().catch((error) => setStatus(error.message, false));
+        });
+
+        els.shareLinkButton.addEventListener("click", () => {
+          shareLink().catch((error) => setStatus(error.message, false));
+        });
+
+        els.connectButton.addEventListener("click", () => {
+          connect().catch((error) => {
+            setStatus(error.message, false);
+          });
+        });
+
+        els.disconnectButton.addEventListener("click", () => {
+          disconnect().catch((error) => {
+            setStatus(error.message, false);
+          });
+        });
+
+        window.addEventListener("beforeunload", () => {
+          if (state.connected && navigator.sendBeacon) {
+            navigator.sendBeacon(
+              "/api/signal",
+              new Blob(
+                [
+                  JSON.stringify({
+                    action: "leave",
+                    roomId: roomCodeForApi(state.roomCode),
+                    deviceId: state.deviceId,
+                  }),
+                ],
+                { type: "application/json" }
+              )
+            );
+          }
+        });
+      }
+
+      syncStateFromUrl();
+      if (!state.roomCode) {
+        state.roomCode = randomRoomCode();
+      }
+      persistUrl();
+      bindEvents();
+      render();
+    </script>
+  </body>
+</html>
